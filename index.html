@@ -1,0 +1,156 @@
+<!doctype html><html lang="zh-CN"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#243b53"><link rel="manifest" href="manifest.webmanifest"><link rel="apple-touch-icon" href="icon-192.png"><title>N2 单词训练器</title>
+<style>
+:root{--navy:#243b53;--blue:#3c78d8;--bg:#f2f5f8;--text:#24303f;--muted:#748091;--green:#25855a;--greenbg:#eaf7ef;--red:#c94d58;--redbg:#fff0f1;--border:#dfe5ec}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","PingFang SC","Hiragino Sans",sans-serif}
+.app{max-width:720px;margin:auto;min-height:100vh;padding:14px 15px 30px}.header{background:var(--navy);color:white;border-radius:20px;padding:17px 18px;margin-bottom:14px;display:flex;justify-content:space-between;align-items:center}.header h1{font-size:20px;margin:0}.header small{opacity:.8}
+.card{background:#fff;border:1px solid var(--border);border-radius:20px;padding:20px;box-shadow:0 5px 22px rgba(36,59,83,.07)}.hidden{display:none!important}
+h2{font-size:19px;margin:0 0 14px}h3{font-size:15px;margin:18px 0 9px}.library{display:flex;gap:9px;align-items:center;padding:13px;border:1px solid var(--border);border-radius:15px;margin-bottom:9px;background:#fafbfd}.library.selected{border:2px solid var(--blue);background:#f5f8ff}.library .info{flex:1}.library b{font-size:15px}.library span{display:block;color:var(--muted);font-size:12px;margin-top:3px}.pick{border:0;background:#e8effc;color:#315da9;border-radius:10px;padding:8px 11px;font-weight:650}.del{border:0;background:#fff0f1;color:#c94d58;border-radius:10px;padding:8px 10px;font-weight:650}
+.mode{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin:10px 0 15px}.mode button{border:1px solid var(--border);background:#fff;color:var(--text);border-radius:11px;padding:10px 6px;font-size:13px}.mode .active{background:var(--navy);color:#fff;border-color:var(--navy)}
+.start{width:100%;border:0;background:var(--blue);color:#fff;border-radius:14px;padding:15px;font-size:17px;font-weight:700}.import{border-top:1px solid var(--border);margin-top:20px;padding-top:16px}textarea{width:100%;height:115px;border:1px solid var(--border);border-radius:12px;padding:10px;font-size:13px;resize:vertical}.secondary{border:1px solid var(--border);background:#f8fafc;border-radius:11px;padding:9px 12px;margin-top:8px}.note{color:var(--muted);font-size:12px;line-height:1.5}
+.quiz-head{display:flex;align-items:center;margin-bottom:10px}.quit{margin-left:auto;border:0;background:#eef1f5;color:#536172;border-radius:10px;padding:8px 10px}.progress{height:9px;background:#e8edf2;border-radius:99px;overflow:hidden}.progress i{display:block;height:100%;background:var(--blue);width:0;transition:.25s}.status{display:flex;justify-content:space-between;color:var(--muted);font-size:13px;margin:9px 1px 0}
+.question{text-align:center;padding:32px 8px 27px;font-size:44px;font-weight:800}.options{display:grid;gap:10px}.option{width:100%;text-align:left;border:1px solid var(--border);background:#fff;border-radius:15px;padding:16px 14px;font-size:18px;color:var(--text);box-shadow:0 2px 9px rgba(36,59,83,.05)}.option.correct{background:var(--greenbg);border-color:#8ed0ab;color:var(--green)}.option.wrong{background:var(--redbg);border-color:#e5a1a8;color:var(--red)}.option.inspect{background:#f8fafc}
+.reveal{margin-top:13px;border-radius:15px;background:#f5f7fa;border:1px solid var(--border);padding:16px}.reveal .main{font-size:23px;font-weight:750}.reveal .meaning{margin-top:7px;color:#556171;line-height:1.5}.inspect-title{font-size:12px;color:var(--muted);margin-bottom:5px}
+.next{width:100%;border:0;background:#303746;color:white;border-radius:13px;padding:14px;margin-top:13px;font-size:17px;font-weight:650}.finish{text-align:center;padding:45px 10px}.finish .big{font-size:48px}.homebtn{border:0;background:var(--navy);color:white;border-radius:13px;padding:13px 24px;font-size:16px}
+</style></head><body><div class="app">
+<div class="header"><h1>N2 单词训练器</h1><small id="headerCount">121词</small></div>
+<section id="home" class="card"><h2>选择词库</h2><div id="libraries"></div>
+<h3>测试方向</h3><div class="mode"><button class="active" data-mode="meaning">假名 → 中文</button><button data-mode="kanji">假名 → 汉字</button><button data-mode="reading">汉字 → 假名</button></div>
+<h3>本轮数量</h3><select id="amount" style="padding:10px;border:1px solid var(--border);border-radius:10px;margin-bottom:15px"><option>10</option><option>20</option><option>30</option><option>50</option><option>100</option><option>121</option></select>
+<button class="start" onclick="start()">开始背词</button>
+<div class="import"><h3>＋ 新建独立词库</h3><p class="note">支持两种格式：汉字＋假名＋中文；或只有假名＋中文。新导入的单词不会和121词混在一起。</p><textarea id="importBox" placeholder="1	単語	たんご	单词&#10;2	例文	れいぶん	例句"></textarea><button class="secondary" onclick="newLibrary()">导入并新建词库</button><div id="importMsg" class="note"></div></div></section>
+<section id="quiz" class="card hidden"><div class="quiz-head"><b id="quizLibrary">词库</b><button class="quit" onclick="goHome()">退出学习</button></div>
+<div class="progress"><i id="progress"></i></div><div class="status"><span id="leftText"></span><span id="roundText"></span></div><div id="question" class="question"></div><div id="options" class="options"></div><div id="currentAnswer" class="reveal hidden"></div><div id="inspectAnswer" class="reveal hidden"></div><button id="nextBtn" class="next hidden" onclick="nextQuestion()">下一题</button></section>
+</div>
+<script>
+const builtIn=[{"kanji": "攻める", "kana": "せめる", "meaning": "进攻，攻击", "pos": ""}, {"kanji": "舐める", "kana": "なめる", "meaning": "舔，含", "pos": ""}, {"kanji": "込める", "kana": "こめる", "meaning": "饱含，包括，包含；集中", "pos": ""}, {"kanji": "詰める", "kana": "つめる", "meaning": "装到，装满，填满；挤紧", "pos": ""}, {"kanji": "占める", "kana": "しめる", "meaning": "占，占据；占领", "pos": ""}, {"kanji": "締める", "kana": "しめる", "meaning": "系，束，系紧；结算", "pos": ""}, {"kanji": "停める", "kana": "とめる", "meaning": "停，停泊，停放", "pos": ""}, {"kanji": "務める", "kana": "つとめる", "meaning": "担任；当，扮演", "pos": ""}, {"kanji": "勤める", "kana": "つとめる", "meaning": "工作，做事", "pos": ""}, {"kanji": "認める", "kana": "みとめる", "meaning": "承认，认可", "pos": ""}, {"kanji": "炒める", "kana": "いためる", "meaning": "炒", "pos": ""}, {"kanji": "暖める", "kana": "あたためる", "meaning": "弄暖和；加热，加温", "pos": ""}, {"kanji": "高める", "kana": "たかめる", "meaning": "提高，抬高", "pos": ""}, {"kanji": "深める", "kana": "ふかめる", "meaning": "加深，深化", "pos": ""}, {"kanji": "眺める", "kana": "ながめる", "meaning": "看，眺望，观看", "pos": ""}, {"kanji": "薄める", "kana": "うすめる", "meaning": "冲淡；稀释；淡化", "pos": ""}, {"kanji": "すすめる", "kana": "すすめる", "meaning": "劝，劝告，推荐", "pos": ""}, {"kanji": "推し進める", "kana": "おしすすめる", "meaning": "推进", "pos": ""}, {"kanji": "弱める", "kana": "よわめる", "meaning": "弱化，减弱", "pos": ""}, {"kanji": "強める", "kana": "つよめる", "meaning": "加强，增强", "pos": ""}, {"kanji": "含める", "kana": "ふくめる", "meaning": "包括，含有，包含", "pos": ""}, {"kanji": "広める", "kana": "ひろめる", "meaning": "推广；扩大", "pos": ""}, {"kanji": "当てはめる", "kana": "あてはめる", "meaning": "填，应用，适用", "pos": ""}, {"kanji": "あきらめる", "kana": "あきらめる", "meaning": "放弃，断念，死心", "pos": ""}, {"kanji": "収める", "kana": "おさめる", "meaning": "缴纳，交纳；结束，完毕", "pos": ""}, {"kanji": "慰める", "kana": "なぐさめる", "meaning": "安慰，宽慰；慰问，慰劳", "pos": ""}, {"kanji": "得る", "kana": "える", "meaning": "得到，取得", "pos": ""}, {"kanji": "植える", "kana": "うえる", "meaning": "种，植，栽", "pos": ""}, {"kanji": "終える", "kana": "おえる", "meaning": "做完，完成，结束", "pos": ""}, {"kanji": "越える", "kana": "こえる", "meaning": "越过，翻过", "pos": ""}, {"kanji": "乗り越える", "kana": "のりこえる", "meaning": "渡过；跨过；越过", "pos": ""}, {"kanji": "耐える", "kana": "たえる", "meaning": "承受，忍受，忍耐", "pos": ""}, {"kanji": "与える", "kana": "あたえる", "meaning": "给，给予，给与", "pos": ""}, {"kanji": "訴える", "kana": "うったえる", "meaning": "申诉，诉说，呼吁", "pos": ""}, {"kanji": "変える", "kana": "かえる", "meaning": "换，改变", "pos": ""}, {"kanji": "栄える", "kana": "さかえる", "meaning": "昌盛繁荣，繁荣兴盛，兴旺", "pos": ""}, {"kanji": "抱える", "kana": "かかえる", "meaning": "担负，承担", "pos": ""}, {"kanji": "着替える", "kana": "きがえる", "meaning": "换衣服，更衣", "pos": ""}, {"kanji": "書き間違える", "kana": "かきまちがえる", "meaning": "写错", "pos": ""}, {"kanji": "言い間違える", "kana": "いいまちがえる", "meaning": "说错", "pos": ""}, {"kanji": "支える", "kana": "ささえる", "meaning": "撑起，支撑；支持", "pos": ""}, {"kanji": "押さえる", "kana": "おさえる", "meaning": "订，抓住；把握，掌控；压，按", "pos": ""}, {"kanji": "備える", "kana": "そなえる", "meaning": "准备，防备", "pos": ""}, {"kanji": "数える", "kana": "かぞえる", "meaning": "数，计算，列举", "pos": ""}, {"kanji": "加える", "kana": "くわえる", "meaning": "加入，加上．增加", "pos": ""}, {"kanji": "衰える", "kana": "おとろえる", "meaning": "衰弱", "pos": ""}, {"kanji": "整える", "kana": "ととのえる", "meaning": "完善，完备", "pos": ""}, {"kanji": "捕まえる", "kana": "つかまえる", "meaning": "捉住，逮住；抓住", "pos": ""}, {"kanji": "合わせる", "kana": "あわせる", "meaning": "总共，合计，合并；配合", "pos": ""}, {"kanji": "組み合わせる", "kana": "くみあわせる", "meaning": "组合，编到一起", "pos": ""}, {"kanji": "待ち合わせる", "kana": "まちあわせる", "meaning": "约会，碰头", "pos": ""}, {"kanji": "問い合わせる", "kana": "といあわせる", "meaning": "询问，问，打听", "pos": ""}, {"kanji": "別れる", "kana": "わかれる", "meaning": "分手，离别", "pos": ""}, {"kanji": "流れる", "kana": "ながれる", "meaning": "流．流动．流淌", "pos": ""}, {"kanji": "ずれる", "kana": "ずれる", "meaning": "错位，错开，移动；背离，偏离", "pos": ""}, {"kanji": "崩れる", "kana": "くずれる", "meaning": "崩溃，毁坏", "pos": ""}, {"kanji": "訪れる", "kana": "おとずれる", "meaning": "到来．来临．访问", "pos": ""}, {"kanji": "受け入れる", "kana": "うけいれる", "meaning": "接受，采纳", "pos": ""}, {"kanji": "取り入れる", "kana": "とりいれる", "meaning": "引进，引入，采用", "pos": ""}, {"kanji": "倒れる", "kana": "たおれる", "meaning": "病倒；倒下；倒塌；倒闭", "pos": ""}, {"kanji": "乱れる", "kana": "みだれる", "meaning": "乱，不平静", "pos": ""}, {"kanji": "溺れる", "kana": "おぼれる", "meaning": "溺水，淹没", "pos": ""}, {"kanji": "優れる", "kana": "すぐれる", "meaning": "优秀，卓越", "pos": ""}, {"kanji": "隠れる", "kana": "かくれる", "meaning": "躲藏，隐藏", "pos": ""}, {"kanji": "めくれる", "kana": "めくれる", "meaning": "打卷儿，卷缩", "pos": ""}, {"kanji": "離れる", "kana": "はなれる", "meaning": "相隔，距离；分离，离开", "pos": ""}, {"kanji": "見慣れる", "kana": "みなれる", "meaning": "看惯，看熟", "pos": ""}, {"kanji": "触れる", "kana": "ふれる", "meaning": "触摸，碰", "pos": ""}, {"kanji": "破れる", "kana": "やぶれる", "meaning": "破，撕破", "pos": ""}, {"kanji": "切れる", "kana": "きれる", "meaning": "断绝关系；断开，中断", "pos": ""}, {"kanji": "あきれる", "kana": "あきれる", "meaning": "惊愕，愕然，目瞪口呆", "pos": ""}, {"kanji": "売り切れる", "kana": "うりきれる", "meaning": "卖完，售罄", "pos": ""}, {"kanji": "見られる", "kana": "みられる", "meaning": "出现，能看到", "pos": ""}, {"kanji": "向ける", "kana": "むける", "meaning": "向，朝，对", "pos": ""}, {"kanji": "傾ける", "kana": "かたむける", "meaning": "倾，倾斜；倾注", "pos": ""}, {"kanji": "投げる", "kana": "なげる", "meaning": "投，扔，掷", "pos": ""}, {"kanji": "溶ける", "kana": "とける", "meaning": "融化；消融；溶化；熔化", "pos": ""}, {"kanji": "分ける", "kana": "わける", "meaning": "分，分开，分解", "pos": ""}, {"kanji": "挫ける", "kana": "くじける", "meaning": "气馁，消沉，颓丧；扭，挫伤", "pos": ""}, {"kanji": "広げる", "kana": "ひろげる", "meaning": "展开，扩大，扩展", "pos": ""}, {"kanji": "和らげる", "kana": "やわらげる", "meaning": "使柔和，使缓和", "pos": ""}, {"kanji": "漬ける", "kana": "つける", "meaning": "腌，浸，泡，浸泡", "pos": ""}, {"kanji": "照りつける", "kana": "てりつける", "meaning": "暴晒，毒晒", "pos": ""}, {"kanji": "傷つける", "kana": "きずつける", "meaning": "伤害，弄伤", "pos": ""}, {"kanji": "ことづける", "kana": "ことづける", "meaning": "带口信，捎话，传话", "pos": ""}, {"kanji": "勇気づける", "kana": "ゆうきづける", "meaning": "鼓励，打气", "pos": ""}, {"kanji": "元気づける", "kana": "げんきづける", "meaning": "使振作，鼓劲，打气，使打起精神", "pos": ""}, {"kanji": "活気づける", "kana": "かっきづける", "meaning": "使充满活力", "pos": ""}, {"kanji": "見かける", "kana": "みかける", "meaning": "看到，看见", "pos": ""}, {"kanji": "呼びかける", "kana": "よびかける", "meaning": "招呼，呼唤", "pos": ""}, {"kanji": "追いかける", "kana": "おいかける", "meaning": "追赶；紧接着，紧跟着", "pos": ""}, {"kanji": "話しかける", "kana": "はなしかける", "meaning": "搭话，打招呼", "pos": ""}, {"kanji": "上げる", "kana": "あげる", "meaning": "提高，抬高", "pos": ""}, {"kanji": "見上げる", "kana": "みあげる", "meaning": "仰望，往上看", "pos": ""}, {"kanji": "仕上げる", "kana": "しあげる", "meaning": "完成，做成", "pos": ""}, {"kanji": "持ち上げる", "kana": "もちあげる", "meaning": "端起，拿起，举起", "pos": ""}, {"kanji": "取り上げる", "kana": "とりあげる", "meaning": "报道；采纳；拿起", "pos": ""}, {"kanji": "作り上げる", "kana": "つくりあげる", "meaning": "制作，做完", "pos": ""}, {"kanji": "曲げる", "kana": "まげる", "meaning": "弄弯，歪曲", "pos": ""}, {"kanji": "怠ける", "kana": "なまける", "meaning": "懒悄，懈怠", "pos": ""}, {"kanji": "捧げる", "kana": "ささげる", "meaning": "奉献，贡献", "pos": ""}, {"kanji": "つり下げる", "kana": "つりさげる", "meaning": "挂，吊，悬挂", "pos": ""}, {"kanji": "設ける", "kana": "もうける", "meaning": "制定，设置，设立", "pos": ""}, {"kanji": "引き受ける", "kana": "ひきうける", "meaning": "答应，接受；承担", "pos": ""}, {"kanji": "比べる", "kana": "くらべる", "meaning": "相比，比较，对比", "pos": ""}, {"kanji": "述べる", "kana": "のべる", "meaning": "陈述，叙述，说明", "pos": ""}, {"kanji": "差し伸べる", "kana": "さしのべる", "meaning": "伸出", "pos": ""}, {"kanji": "立てる", "kana": "たてる", "meaning": "弄响，扬起；立，竖；制定", "pos": ""}, {"kanji": "組み立てる", "kana": "くみたてる", "meaning": "组装，安装，装配", "pos": ""}, {"kanji": "見捨てる", "kana": "みすてる", "meaning": "抛弃，离弃", "pos": ""}, {"kanji": "育てる", "kana": "そだてる", "meaning": "养育，抚育，培养", "pos": ""}, {"kanji": "隔てる", "kana": "へだてる", "meaning": "隔开，分开", "pos": ""}, {"kanji": "役立てる", "kana": "やくだてる", "meaning": "使起作用，供使用", "pos": ""}, {"kanji": "湧き出る", "kana": "わきでる", "meaning": "喷涌，喷出，涌出", "pos": ""}, {"kanji": "診る", "kana": "みる", "meaning": "诊断", "pos": ""}, {"kanji": "試みる", "kana": "こころみる", "meaning": "尝试，试验", "pos": ""}, {"kanji": "応じる", "kana": "おうじる", "meaning": "适应，接受，回答，答应", "pos": ""}, {"kanji": "講じる", "kana": "こうじる", "meaning": "采取，寻求，谋求；讲说，朗读", "pos": ""}, {"kanji": "相通じる", "kana": "あいつうじる", "meaning": "相通", "pos": ""}, {"kanji": "載せる", "kana": "のせる", "meaning": "放，搁；载，登载", "pos": ""}, {"kanji": "押し寄せる", "kana": "おしよせる", "meaning": "涌过来，蜂拥而至", "pos": ""}];
+let libs=JSON.parse(localStorage.getItem("n2libs_v4")||"null");
+if(!libs){libs=[{id:"builtin",name:"N2 121词（原始词库）",words:builtIn}];save()}
+let selected=libs[0]?.id||"builtin",mode="meaning",pool=[],left=0,total=0,current=null,lastId=null,locked=false;
+function save(){localStorage.setItem("n2libs_v4",JSON.stringify(libs))}
+function esc(s){return String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
+function renderLibraries(){const box=document.getElementById("libraries");box.innerHTML="";libs.forEach(l=>{const d=document.createElement("div");d.className="library"+(l.id===selected?" selected":"");const del=l.id!=="builtin"?`<button class="del" onclick="deleteLibrary('${l.id}');event.stopPropagation()">删除</button>`:"";d.innerHTML=`<div class="info"><b>${esc(l.name)}</b><span>${l.words.length} 个单词</span></div>${del}<button class="pick" onclick="selectLib('${l.id}')">${l.id===selected?"已选择":"选择"}</button>`;box.appendChild(d)});document.getElementById("headerCount").textContent=(libs.find(x=>x.id===selected)?.words.length||0)+"词"}
+function selectLib(id){selected=id;renderLibraries()}
+function deleteLibrary(id){
+ const lib=libs.find(x=>x.id===id);
+ if(!lib || id==="builtin") return;
+ if(!confirm(`确定删除「${lib.name}」吗？\n\n其中的 ${lib.words.length} 个单词和该词库将一起删除。此操作不能恢复。`)) return;
+ libs=libs.filter(x=>x.id!==id);
+ if(selected===id) selected="builtin";
+ save();
+ renderLibraries();
+ document.getElementById("importMsg").textContent=`已删除「${lib.name}」。`;
+}
+document.querySelectorAll(".mode button").forEach(b=>b.onclick=()=>{document.querySelectorAll(".mode button").forEach(x=>x.classList.remove("active"));b.classList.add("active");mode=b.dataset.mode})
+function newLibrary(){
+ const raw=document.getElementById("importBox").value.trim();
+ if(!raw){
+   document.getElementById("importMsg").textContent="请先粘贴单词。";
+   return;
+ }
+
+ const arr=[];
+ const lines=raw.split(/\r?\n/).map(x=>x.trim()).filter(Boolean);
+
+ for(const line of lines){
+   let p=line.includes("\t")
+     ? line.split("\t").map(x=>x.trim()).filter(Boolean)
+     : line.split(/\s+/).map(x=>x.trim()).filter(Boolean);
+
+   // 去掉序号：97 / 97. / 97、 / 97）
+   if(p.length && /^\d+[、.．）)]?$/.test(p[0])) p.shift();
+
+   if(p.length>=3){
+     // 标准格式：
+     // 汉字    假名    中文
+     arr.push({
+       kanji:p[0],
+       kana:p[1],
+       meaning:p.slice(2).join(" "),
+       pos:""
+     });
+   }else if(p.length===2){
+     // 假名/无汉字单词：
+     // のんびり    悠闲、悠然
+     // でたらめ    胡乱、胡说八道
+     arr.push({
+       kanji:p[0],
+       kana:p[0],
+       meaning:p[1],
+       pos:""
+     });
+   }
+ }
+
+ if(!arr.length){
+   document.getElementById("importMsg").textContent=
+     "没有识别成功。请使用：汉字＋假名＋中文，或假名＋中文，每行一个单词。";
+   return;
+ }
+
+ const id="lib_"+Date.now();
+ const name="我的词库 "+(libs.length);
+ libs.push({id,name,words:arr});
+ selected=id;
+ save();
+
+ document.getElementById("importBox").value="";
+ document.getElementById("importMsg").textContent=
+   "✓ 已新建「"+name+"」： "+arr.length+" 个单词。";
+ renderLibraries();
+}
+function start(){const lib=libs.find(x=>x.id===selected);if(!lib?.words.length)return;const n=Math.min(+document.getElementById("amount").value||10,lib.words.length);pool=[...lib.words].sort(()=>Math.random()-.5).slice(0,n).map((w,i)=>({...w,id:i}));left=total=pool.length;lastId=null;document.getElementById("home").classList.add("hidden");document.getElementById("quiz").classList.remove("hidden");document.getElementById("quizLibrary").textContent=lib.name;draw()}
+function value(w){return mode==="meaning"?w.meaning:mode==="kanji"?w.kanji:w.kana}
+function draw(){if(left===0){document.getElementById("quiz").innerHTML=`<div class="finish"><div class="big">✓</div><h2>这一轮完成</h2><p>这组 ${total} 个单词全部答对。</p><button class="homebtn" onclick="goHome()">回到首页</button></div>`;return}locked=false;let c=pool.filter(x=>x.id!==lastId);current=c.length?c[Math.floor(Math.random()*c.length)]:pool[0];lastId=current.id;document.getElementById("leftText").textContent="剩余 "+left;document.getElementById("roundText").textContent=(total-left)+"/"+total;document.getElementById("progress").style.width=((total-left)/total*100)+"%";document.getElementById("question").textContent=mode==="reading"?current.kanji:current.kana;document.getElementById("currentAnswer").classList.add("hidden");document.getElementById("currentAnswer").innerHTML="";document.getElementById("inspectAnswer").classList.add("hidden");document.getElementById("inspectAnswer").innerHTML="";document.getElementById("nextBtn").classList.add("hidden");makeOptions()}
+function makeOptions(){const correct=value(current),lib=libs.find(x=>x.id===selected),vals=[...new Set(lib.words.map(value).filter(x=>x&&x!==correct))].sort(()=>Math.random()-.5).slice(0,3);vals.push(correct);vals.sort(()=>Math.random()-.5);const box=document.getElementById("options");box.innerHTML="";vals.forEach(v=>{const b=document.createElement("button");b.className="option";b.textContent=v;b.onclick=()=>choose(b,v,correct);box.appendChild(b)})}
+function showCurrentAnswer(w,label){
+ const r=document.getElementById("currentAnswer");
+ r.classList.remove("hidden");
+ r.innerHTML=`<div class="inspect-title">${esc(label)}</div><div class="main">${esc(w.kanji)}（${esc(w.kana)}）</div><div class="meaning">${esc(w.meaning)}</div>`;
+}
+function showOptionMeaning(text){
+ const lib=libs.find(x=>x.id===selected);
+ if(!lib)return;
+ const w=lib.words.find(x=>value(x)===text);
+ if(!w)return;
+ const r=document.getElementById("inspectAnswer");
+ r.classList.remove("hidden");
+ r.innerHTML=`<div class="inspect-title">查看这个选项</div><div class="main">${esc(w.kanji)}（${esc(w.kana)}）</div><div class="meaning">${esc(w.meaning)}</div>`;
+}
+function choose(btn,v,correct){
+ if(locked)return;
+ locked=true;
+ const ok=v===correct;
+ document.querySelectorAll(".option").forEach(b=>{
+   if(b.textContent===correct)b.classList.add("correct");
+   else if(b===btn)b.classList.add("wrong");
+ });
+ showCurrentAnswer(current,ok?"✓ 当前题答案":"✕ 当前题答案");
+ if(ok){
+   pool=pool.filter(x=>x.id!==current.id);
+   left--;
+   document.getElementById("nextBtn").classList.add("hidden");
+   setTimeout(draw,450);
+ }else{
+   document.querySelectorAll(".option").forEach(b=>{
+     if(b.textContent!==correct){
+       b.disabled=false;
+       b.classList.add("inspect");
+       b.onclick=()=>showOptionMeaning(b.textContent);
+     }
+   });
+   document.getElementById("inspectAnswer").classList.add("hidden");
+   document.getElementById("inspectAnswer").innerHTML="";
+   document.getElementById("nextBtn").classList.remove("hidden");
+ }
+ document.getElementById("leftText").textContent="剩余 "+left;
+}
+function nextQuestion(){
+ document.getElementById("nextBtn").classList.add("hidden");
+ draw();
+}
+function goHome(){location.reload()}
+renderLibraries();
+if("serviceWorker" in navigator){window.addEventListener("load",()=>navigator.serviceWorker.register("sw.js").catch(()=>{}));}
+</script></body></html>
